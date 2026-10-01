@@ -560,7 +560,36 @@
             );
         }
     }
+// =========================================
+// NORMALIZAR STATUS
+// =========================================
 
+function normalizarStatus(valor) {
+
+    const status = String(valor || "")
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+    if (status === "sim" || status === "licenciado") {
+        return "sim";
+    }
+
+    if (
+        status === "nao" ||
+        status === "irregular" ||
+        status === "nao licenciado"
+    ) {
+        return "nao";
+    }
+
+    if (status === "pendente") {
+        return "pendente";
+    }
+
+    return "nao";
+}    
     // =========================================
     // FILTROS
     // =========================================
@@ -603,12 +632,7 @@
                 )
                 .toLowerCase();
 
-            const status =
-                String(
-                    est.Licenciado || ""
-                )
-                .toLowerCase()
-                .trim();
+            const status = normalizarStatus(est.Licenciado);
 
             const pesquisaOK =
                 nome.includes(textoPesquisa);
@@ -650,10 +674,7 @@
             let icon =
                 iconRed;
 
-            const status =
-                String(est.Licenciado || "")
-                .toLowerCase()
-                .trim();
+            const status = normalizarStatus(est.Licenciado);
 
             if(status === "sim"){
 
