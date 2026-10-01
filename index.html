@@ -848,17 +848,32 @@ const marker = L.marker(
     });
 
 
-        // AJUSTA ZOOM
+     // =========================================
+// AJUSTE DE ZOOM
+// =========================================
 
-        if(
-            markersLayer.getLayers().length > 0
-        ){
+const pontos = markersLayer.getLayers();
 
-            map.fitBounds(
-                markersLayer.getBounds()
-            );
-        }
-    }
+if (pontos.length === 1) {
+
+    const ponto = pontos[0].getLatLng();
+
+    map.setView(
+        ponto,
+        15
+    );
+
+}
+else if (pontos.length > 1) {
+
+    const bounds = markersLayer.getBounds();
+
+    map.fitBounds(bounds, {
+        padding: [40, 40],
+        maxZoom: 15
+    });
+
+}
 
     // =========================================
     // EVENTOS
