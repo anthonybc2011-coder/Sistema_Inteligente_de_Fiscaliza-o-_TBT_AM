@@ -384,8 +384,7 @@
     // CLUSTER
     // =========================================
 
-    const markersLayer =
-        L.markerClusterGroup();
+    const markersLayer = L.layerGroup();
 
     map.addLayer(markersLayer);
 
@@ -591,6 +590,31 @@ function normalizarStatus(valor) {
     return "nao";
 }    
     // =========================================
+// DISTRIBUIR PONTOS SOBREPOSTOS
+// =========================================
+
+function ajustarCoordenada(lat, lng, indice, total) {
+
+    if (total <= 1) {
+        return [lat, lng];
+    }
+
+    // Raio aproximado do deslocamento em graus
+    const raio = 0.00015;
+
+    // Distribui os pontos em círculo
+    const angulo =
+        (2 * Math.PI * indice) / total;
+
+    const novaLat =
+        lat + Math.sin(angulo) * raio;
+
+    const novaLng =
+        lng + Math.cos(angulo) * raio;
+
+    return [novaLat, novaLng];
+}
+    // =========================================
     // FILTROS
     // =========================================
 
@@ -652,7 +676,32 @@ function normalizarStatus(valor) {
 
         atualizarDashboard(filtrados);
 
-        filtrados.forEach(est => {
+        // =========================================
+// IDENTIFICAR COORDENADAS REPETIDAS
+// =========================================
+
+const coordenadas = {};
+
+filtrados.forEach(est => {
+
+    const lat = parseFloat(est.Latitude);
+    const lng = parseFloat(est.Longitude);
+
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const chave =
+        lat.toFixed(6) + "," + lng.toFixed(6);
+
+    if (!coordenadas[chave]) {
+        coordenadas[chave] = [];
+    }
+
+    coordenadas[chave].push(est);
+});
+        
+        Object.values(coordenadas).forEach(grupo => {
+
+        grupo.forEach((est, indice) => {
 
             const lat =
                 parseFloat(est.Latitude);
@@ -771,19 +820,33 @@ function normalizarStatus(valor) {
 
             `;
 
-            const marker = L.marker(
+            const chave =
+    lat.toFixed(6) + "," + lng.toFixed(6);
 
-                [lat, lng],
+const grupo =
+    coordenadas[chave];
 
-                { icon }
+const [novaLat, novaLng] =
+    ajustarCoordenada(
+        lat,
+        lng,
+        indice,
+        grupo.length
+    );
 
-            );
+const marker = L.marker(
+    [novaLat, novaLng],
+    { icon }
+);
 
             marker.bindPopup(popup);
 
             markersLayer.addLayer(marker);
 
         });
+
+    });
+
 
         // AJUSTA ZOOM
 
