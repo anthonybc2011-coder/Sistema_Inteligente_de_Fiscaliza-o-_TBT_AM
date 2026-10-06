@@ -387,6 +387,11 @@
     const markersLayer = L.layerGroup();
 
     map.addLayer(markersLayer);
+    // =========================================
+    // DADOS DA PLANILHA
+    // =========================================
+
+    let dadosGlobais = [];
 
     // =========================================
     // ICONES
@@ -519,46 +524,66 @@
 
     async function carregarDados(){
 
-        try{
+    try{
 
-            markersLayer.clearLayers();
+        const response = await fetch(sheetURL);
 
-            const response =
-                await fetch(sheetURL);
-
-            if(!response.ok){
-
-                throw new Error(
-                    "Erro ao carregar planilha"
-                );
-            }
-
-            const csv =
-                await response.text();
-
-            const resultado =
-                Papa.parse(csv, {
-
-                    header: true,
-
-                    skipEmptyLines: true
-                });
-
-            const dados =
-                resultado.data;
-
-            aplicarFiltros(dados);
-
-        }
-        catch(erro){
-
-            console.error(erro);
-
-            alert(
-                "Erro ao carregar dados da planilha."
+        if(!response.ok){
+            throw new Error(
+                "Servidor retornou HTTP " + response.status
             );
         }
+
+        const csv = await response.text();
+
+        const resultado = Papa.parse(csv, {
+            header: true,
+            skipEmptyLines: true
+        });
+
+        if(resultado.errors && resultado.errors.length > 0){
+            console.warn(
+                "Avisos do PapaParse:",
+                resultado.errors
+            );
+        }
+
+        dadosGlobais = resultado.data;
+
+        // Aplica os filtros usando os dados já carregados
+        aplicarFiltros(dadosGlobais);
+
+        console.log(
+            "Planilha carregada:",
+            dadosGlobais.length,
+            "estabelecimentos"
+        );
+
     }
+    catch(erro){
+
+        console.error(
+            "Erro ao carregar planilha:",
+            erro
+        );
+
+        // Só mostra alerta se realmente não houver dados
+        if(dadosGlobais.length === 0){
+
+            alert(
+                "Não foi possível carregar os dados da planilha."
+            );
+
+        } else {
+
+            console.warn(
+                "Falha na atualização. Mantendo os dados atuais."
+            );
+
+            aplicarFiltros(dadosGlobais);
+        }
+    }
+}
 // =========================================
 // NORMALIZAR STATUS
 // =========================================
@@ -854,9 +879,28 @@ const marker = L.marker(
             markersLayer.getLayers().length > 0
         ){
 
-            map.fitBounds(
-                markersLayer.getBounds()
-            );
+           const pontos = markersLayer.getLayers();
+
+if (pontos.length === 1) {
+
+    const ponto = pontos[0].getLatLng();
+
+    map.setView(
+        ponto,
+        15
+    );
+
+}
+else if (pontos.length > 1) {
+
+    const bounds = markersLayer.getBounds();
+
+    map.fitBounds(bounds, {
+        padding: [40, 40],
+        maxZoom: 15
+    });
+
+}
         }
     }
 
@@ -865,31 +909,25 @@ const marker = L.marker(
     // =========================================
 
     document
-        .getElementById("pesquisa")
-        .addEventListener(
+    .getElementById("pesquisa")
+    .addEventListener(
+        "input",
+        () => aplicarFiltros(dadosGlobais)
+    );
 
-            "input",
+document
+    .getElementById("pesquisaCategoria")
+    .addEventListener(
+        "input",
+        () => aplicarFiltros(dadosGlobais)
+    );
 
-            () => carregarDados()
-        );
-
-    document
-        .getElementById("pesquisaCategoria")
-        .addEventListener(
-
-            "input",
-
-            () => carregarDados()
-        );
-
-    document
-        .getElementById("filtro")
-        .addEventListener(
-
-            "change",
-
-            () => carregarDados()
-        );
+document
+    .getElementById("filtro")
+    .addEventListener(
+        "change",
+        () => aplicarFiltros(dadosGlobais)
+    );
 
     // =========================================
     // ATUALIZA AUTOMATICAMENTE
